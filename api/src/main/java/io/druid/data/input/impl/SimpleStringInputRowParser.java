@@ -23,25 +23,19 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterators;
-import io.druid.data.input.ByteBufferInputRowParser;
 import io.druid.data.input.InputRow;
 import io.druid.java.util.common.collect.Utils;
-import io.druid.java.util.common.parsers.ParseException;
 import io.druid.java.util.common.parsers.Parser;
 
 import javax.annotation.Nullable;
-import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
 import java.nio.charset.Charset;
-import java.nio.charset.CoderResult;
-import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
 /**
  */
-public class StringInputRowParser implements ByteBufferInputRowParser
+public class SimpleStringInputRowParser implements InputRowParser<String>
 {
   private static final Charset DEFAULT_CHARSET = StandardCharsets.UTF_8;
 
@@ -50,10 +44,9 @@ public class StringInputRowParser implements ByteBufferInputRowParser
   private final Charset charset;
 
   private Parser<String, Object> parser;
-  private CharBuffer chars;
 
   @JsonCreator
-  public StringInputRowParser(
+  public SimpleStringInputRowParser(
       @JsonProperty("parseSpec") ParseSpec parseSpec,
       @JsonProperty("encoding") String encoding
   )
@@ -69,15 +62,15 @@ public class StringInputRowParser implements ByteBufferInputRowParser
   }
 
   @Deprecated
-  public StringInputRowParser(ParseSpec parseSpec)
+  public SimpleStringInputRowParser(ParseSpec parseSpec)
   {
     this(parseSpec, null);
   }
 
   @Override
-  public List<InputRow> parseBatch(ByteBuffer input)
+  public List<InputRow> parseBatch(String input)
   {
-    return Utils.nullableListOf(parseMap(buildStringKeyMap(input)));
+    return Utils.nullableListOf(parse(input));
   }
 
   @JsonProperty
@@ -94,37 +87,9 @@ public class StringInputRowParser implements ByteBufferInputRowParser
   }
 
   @Override
-  public StringInputRowParser withParseSpec(ParseSpec parseSpec)
+  public SimpleStringInputRowParser withParseSpec(ParseSpec parseSpec)
   {
-    return new StringInputRowParser(parseSpec, getEncoding());
-  }
-
-  private Map<String, Object> buildStringKeyMap(ByteBuffer input)
-  {
-    int payloadSize = input.remaining();
-
-    if (chars == null || chars.remaining() < payloadSize) {
-      chars = CharBuffer.allocate(payloadSize);
-    }
-
-    final CoderResult coderResult = charset.newDecoder()
-                                           .onMalformedInput(CodingErrorAction.REPLACE)
-                                           .onUnmappableCharacter(CodingErrorAction.REPLACE)
-                                           .decode(input, chars, true);
-
-    Map<String, Object> theMap;
-    if (coderResult.isUnderflow()) {
-      chars.flip();
-      try {
-        theMap = parseString(chars.toString());
-      }
-      finally {
-        chars.clear();
-      }
-    } else {
-      throw new ParseException("Failed with CoderResult[%s]", coderResult);
-    }
-    return theMap;
+    return new SimpleStringInputRowParser(parseSpec, getEncoding());
   }
 
   public void initializeParser()
@@ -144,6 +109,7 @@ public class StringInputRowParser implements ByteBufferInputRowParser
   }
 
   @Nullable
+  @Override
   public InputRow parse(@Nullable String input)
   {
     return parseMap(parseString(input));

@@ -27,7 +27,9 @@ import com.google.common.collect.ImmutableList;
 import io.druid.data.input.Firehose;
 import io.druid.data.input.impl.AbstractTextFilesFirehoseFactory;
 import io.druid.data.input.impl.FileIteratingFirehose;
-import io.druid.data.input.impl.StringInputRowParser;
+import io.druid.data.input.impl.FirehoseReader;
+import io.druid.data.input.impl.LineOrientedFirehoseReader;
+import io.druid.data.input.impl.SimpleStringInputRowParser;
 import io.druid.java.util.common.ISE;
 import io.druid.java.util.common.concurrent.Execs;
 import io.druid.java.util.common.logger.Logger;
@@ -38,9 +40,6 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -52,7 +51,7 @@ import java.util.concurrent.TimeUnit;
  * by this class provides three key functionalities.
  * <p/>
  * <p>
- * - Caching: for the first call of {@link #connect(StringInputRowParser, File)}, it caches objects in a local disk
+ * - Caching: for the first call of {@link #connect(SimpleStringInputRowParser, File)}, it caches objects in a local disk
  * up to maxCacheCapacityBytes.  These caches are NOT deleted until the process terminates, and thus can be used for
  * future reads.
  * <br/>
@@ -156,7 +155,7 @@ public abstract class PrefetchableTextFilesFirehoseFactory<T>
   }
 
   @Override
-  public Firehose connect(StringInputRowParser firehoseParser, @Nullable File temporaryDirectory) throws IOException
+  public Firehose connect(SimpleStringInputRowParser firehoseParser, @Nullable File temporaryDirectory) throws IOException
   {
     if (objects == null) {
       objects = ImmutableList.copyOf(Preconditions.checkNotNull(initObjects(), "objects"));
@@ -204,8 +203,8 @@ public abstract class PrefetchableTextFilesFirehoseFactory<T>
         getMaxFetchRetry()
     );
 
-    return new FileIteratingFirehose(
-        new Iterator<LineIterator>()
+    return new FileIteratingFirehose<String>(
+        new Iterator<FirehoseReader<String>>()
         {
           @Override
           public boolean hasNext()
@@ -214,7 +213,7 @@ public abstract class PrefetchableTextFilesFirehoseFactory<T>
           }
 
           @Override
-          public LineIterator next()
+          public ResourceCloseableLineOrientedFirehoseReader next()
           {
             if (!hasNext()) {
               throw new NoSuchElementException();
@@ -232,8 +231,8 @@ public abstract class PrefetchableTextFilesFirehoseFactory<T>
               throw new RuntimeException(e);
             }
 
-            return new ResourceCloseableLineIterator(
-                new InputStreamReader(stream, StandardCharsets.UTF_8),
+            return new ResourceCloseableLineOrientedFirehoseReader(
+                stream,
                 openedObject.getResourceCloser()
             );
           }
@@ -275,13 +274,13 @@ public abstract class PrefetchableTextFilesFirehoseFactory<T>
   /**
    * This class calls the {@link Closeable#close()} method of the resourceCloser when it is closed.
    */
-  static class ResourceCloseableLineIterator extends LineIterator
+  static class ResourceCloseableLineOrientedFirehoseReader extends LineOrientedFirehoseReader
   {
     private final Closeable resourceCloser;
 
-    ResourceCloseableLineIterator(Reader reader, Closeable resourceCloser) throws IllegalArgumentException
+    ResourceCloseableLineOrientedFirehoseReader(InputStream inputStream, Closeable resourceCloser) throws IllegalArgumentException
     {
-      super(reader);
+      super(inputStream);
       this.resourceCloser = resourceCloser;
     }
 

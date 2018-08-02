@@ -112,7 +112,7 @@ public class FlatTextFormatParserTest
   {
     final int skipHeaderRows = 2;
     final Parser<String, Object> parser = parserFactory.get(format, false, skipHeaderRows);
-    parser.startFileFromBeginning();
+    parser.reset();
     final String[] body = new String[]{
         concat(format, "header", "line", "1"),
         concat(format, "header", "line", "2"),
@@ -134,7 +134,7 @@ public class FlatTextFormatParserTest
   public void testWithHeaderRow()
   {
     final Parser<String, Object> parser = parserFactory.get(format, true, 0);
-    parser.startFileFromBeginning();
+    parser.reset();
     final String[] body = new String[]{
         concat(format, "time", "value1", "value2"),
         concat(format, "hello", "world", "foo")
@@ -152,7 +152,7 @@ public class FlatTextFormatParserTest
   public void testWithHeaderRowOfEmptyColumns()
   {
     final Parser<String, Object> parser = parserFactory.get(format, true, 0);
-    parser.startFileFromBeginning();
+    parser.reset();
     final String[] body = new String[]{
         concat(format, "time", "", "value2", ""),
         concat(format, "hello", "world", "foo", "bar")
@@ -170,7 +170,7 @@ public class FlatTextFormatParserTest
   public void testWithDifferentHeaderRows()
   {
     final Parser<String, Object> parser = parserFactory.get(format, true, 0);
-    parser.startFileFromBeginning();
+    parser.reset();
     final String[] body = new String[]{
         concat(format, "time", "value1", "value2"),
         concat(format, "hello", "world", "foo")
@@ -183,7 +183,7 @@ public class FlatTextFormatParserTest
         jsonMap
     );
 
-    parser.startFileFromBeginning();
+    parser.reset();
     final String[] body2 = new String[]{
         concat(format, "time", "value1", "value2", "value3"),
         concat(format, "hello", "world", "foo", "bar")

@@ -25,9 +25,6 @@ import com.google.common.collect.ImmutableList;
 import io.druid.data.input.Firehose;
 import io.druid.data.input.FirehoseFactory;
 import io.druid.java.util.common.logger.Logger;
-import org.apache.commons.io.Charsets;
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.io.LineIterator;
 
 import java.io.File;
 import java.io.IOException;
@@ -39,26 +36,26 @@ import java.util.NoSuchElementException;
 
 /**
  * This is an abstract class for firehose factory for making firehoses reading text files.
- * It provides an unified {@link #connect(StringInputRowParser, File)} implementation for its subclasses.
+ * It provides an unified {@link #connect(SimpleStringInputRowParser, File)} implementation for its subclasses.
  *
  * @param <T> object type representing input data
  */
 public abstract class AbstractTextFilesFirehoseFactory<T>
-    implements FirehoseFactory<StringInputRowParser>
+    implements FirehoseFactory<SimpleStringInputRowParser>
 {
   private static final Logger LOG = new Logger(AbstractTextFilesFirehoseFactory.class);
 
   private List<T> objects;
 
   @Override
-  public Firehose connect(StringInputRowParser firehoseParser, File temporaryDirectory) throws IOException
+  public Firehose connect(SimpleStringInputRowParser firehoseParser, File temporaryDirectory) throws IOException
   {
     if (objects == null) {
       objects = ImmutableList.copyOf(Preconditions.checkNotNull(initObjects(), "initObjects"));
     }
     final Iterator<T> iterator = objects.iterator();
-    return new FileIteratingFirehose(
-        new Iterator<LineIterator>()
+    return new FileIteratingFirehose<String>(
+        new Iterator<FirehoseReader<String>>()
         {
           @Override
           public boolean hasNext()
@@ -67,14 +64,15 @@ public abstract class AbstractTextFilesFirehoseFactory<T>
           }
 
           @Override
-          public LineIterator next()
+          public LineOrientedFirehoseReader next()
           {
             if (!hasNext()) {
               throw new NoSuchElementException();
             }
             final T object = iterator.next();
             try {
-              return IOUtils.lineIterator(wrapObjectStream(object, openObjectStream(object)), Charsets.UTF_8);
+              firehoseParser.startFileFromBeginning();
+              return new LineOrientedFirehoseReader(wrapObjectStream(object, openObjectStream(object)));
             }
             catch (Exception e) {
               LOG.error(
@@ -86,14 +84,13 @@ public abstract class AbstractTextFilesFirehoseFactory<T>
             }
           }
         },
-        firehoseParser
-    );
+        firehoseParser);
   }
 
   /**
    * Initialize objects to be read by this firehose.  Since firehose factories are constructed whenever
    * io.druid.indexing.common.task.Task objects are deserialized, actual initialization of objects is deferred
-   * until {@link #connect(StringInputRowParser, File)} is called.
+   * until {@link #connect(SimpleStringInputRowParser, File)} is called.
    *
    * @return a collection of initialized objects.
    */

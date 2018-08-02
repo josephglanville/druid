@@ -24,6 +24,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import io.druid.data.input.InputRow;
 import io.druid.guice.annotations.ExtensionPoint;
 import io.druid.java.util.common.collect.Utils;
+import io.druid.java.util.common.parsers.Parser;
 
 import javax.annotation.Nullable;
 import javax.validation.constraints.NotNull;
@@ -63,4 +64,14 @@ public interface InputRowParser<T>
   ParseSpec getParseSpec();
 
   InputRowParser withParseSpec(ParseSpec parseSpec);
+
+  /**
+   * Reset the internal state of the {@link InputRowParser} if any exists.
+   * This should include resetting any internal {@link Parser} instances
+   */
+  default void reset() { }
+
+  default void startFileFromBeginning() {
+
+  }
 }

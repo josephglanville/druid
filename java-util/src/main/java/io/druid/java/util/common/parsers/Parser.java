@@ -32,7 +32,7 @@ public interface Parser<K, V>
    * This method may or may not get called at the start of reading of every file depending on the type of IndexTasks.
    * The parser state should be reset if exists.
    */
-  default void startFileFromBeginning()
+  default void reset()
   {
 
   }

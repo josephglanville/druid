@@ -22,7 +22,6 @@ package io.druid.data.input.impl;
 import io.druid.data.input.Firehose;
 import io.druid.data.input.InputRow;
 import io.druid.utils.Runnables;
-import org.apache.commons.io.LineIterator;
 
 import javax.annotation.Nullable;
 import java.io.Closeable;
@@ -32,30 +31,26 @@ import java.util.NoSuchElementException;
 
 /**
  */
-public class FileIteratingFirehose implements Firehose
+public class FileIteratingFirehose<T> implements Firehose
 {
-  private final Iterator<LineIterator> lineIterators;
-  private final StringInputRowParser parser;
+  private final Iterator<FirehoseReader<T>> readers;
 
-  private LineIterator lineIterator = null;
+  private FirehoseReader<T> reader = null;
+  private InputRowParser<T> parser;
 
   private final Closeable closer;
 
-  public FileIteratingFirehose(
-      Iterator<LineIterator> lineIterators,
-      StringInputRowParser parser
-  )
-  {
-    this(lineIterators, parser, null);
+  public FileIteratingFirehose(Iterator<FirehoseReader<T>> readers, InputRowParser<T> parser) {
+    this(readers, parser, null);
   }
 
   public FileIteratingFirehose(
-      Iterator<LineIterator> lineIterators,
-      StringInputRowParser parser,
+      Iterator<FirehoseReader<T>> readers,
+      InputRowParser<T> parser,
       Closeable closer
   )
   {
-    this.lineIterators = lineIterators;
+    this.readers = readers;
     this.parser = parser;
     this.closer = closer;
   }
@@ -63,11 +58,11 @@ public class FileIteratingFirehose implements Firehose
   @Override
   public boolean hasMore()
   {
-    while ((lineIterator == null || !lineIterator.hasNext()) && lineIterators.hasNext()) {
-      lineIterator = getNextLineIterator();
+    while ((reader == null || !reader.hasNext()) && readers.hasNext()) {
+      reader = getNextReader();
     }
 
-    return lineIterator != null && lineIterator.hasNext();
+    return reader != null && reader.hasNext();
   }
 
   @Nullable
@@ -78,18 +73,17 @@ public class FileIteratingFirehose implements Firehose
       throw new NoSuchElementException();
     }
 
-    return parser.parse(lineIterator.next());
+    // TODO(jpg) should be using parseBatch
+    return parser.parse(reader.next());
   }
 
-  private LineIterator getNextLineIterator()
+  private FirehoseReader<T> getNextReader()
   {
-    if (lineIterator != null) {
-      lineIterator.close();
+    if (reader != null) {
+      reader.close();
     }
 
-    final LineIterator iterator = lineIterators.next();
-    parser.startFileFromBeginning();
-    return iterator;
+    return readers.next();
   }
 
   @Override
@@ -102,8 +96,8 @@ public class FileIteratingFirehose implements Firehose
   public void close() throws IOException
   {
     try {
-      if (lineIterator != null) {
-        lineIterator.close();
+      if (reader != null) {
+        reader.close();
       }
     }
     catch (Throwable t) {

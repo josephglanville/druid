@@ -102,7 +102,7 @@ public class TransformSpec
 
     if (parser instanceof StringInputRowParser) {
       // Hack to support the fact that some callers use special methods in StringInputRowParser, such as
-      // parse(String) and startFileFromBeginning.
+      // parse(String) and reset.
       return (InputRowParser<T>) new TransformingStringInputRowParser(
           parser.getParseSpec(),
           ((StringInputRowParser) parser).getEncoding(),

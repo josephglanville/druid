@@ -43,11 +43,6 @@ public class InfluxParser implements Parser<String, Object>
     this.measurementWhitelist = measurementWhitelist;
   }
 
-  @Override
-  public void startFileFromBeginning()
-  {
-  }
-
   @Nullable
   @Override
   public Map<String, Object> parseToMap(String input)

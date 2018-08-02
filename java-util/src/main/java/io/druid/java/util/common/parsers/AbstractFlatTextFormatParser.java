@@ -78,7 +78,7 @@ public abstract class AbstractFlatTextFormatParser implements Parser<String, Obj
   }
 
   @Override
-  public void startFileFromBeginning()
+  public void reset()
   {
     if (hasHeaderRow) {
       fieldNames = null;
