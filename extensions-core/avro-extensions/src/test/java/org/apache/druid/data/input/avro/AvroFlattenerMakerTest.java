@@ -33,7 +33,7 @@ public class AvroFlattenerMakerTest
   public void getRootField()
   {
     final SomeAvroDatum record = AvroStreamInputRowParserTest.buildSomeAvroDatum();
-    final AvroFlattenerMaker flattener = new AvroFlattenerMaker(false, false);
+    final AvroFlattenerMaker flattener = new AvroFlattenerMaker(false, false, true);
 
     Assert.assertEquals(
         record.getTimestamp(),
@@ -120,7 +120,7 @@ public class AvroFlattenerMakerTest
   public void makeJsonPathExtractor()
   {
     final SomeAvroDatum record = AvroStreamInputRowParserTest.buildSomeAvroDatum();
-    final AvroFlattenerMaker flattener = new AvroFlattenerMaker(false, false);
+    final AvroFlattenerMaker flattener = new AvroFlattenerMaker(false, false, true);
 
     Assert.assertEquals(
         record.getTimestamp(),
@@ -161,6 +161,10 @@ public class AvroFlattenerMakerTest
     Assert.assertEquals(
         record.getSomeUnion(),
         flattener.makeJsonPathExtractor("$.someUnion").apply(record)
+    );
+    Assert.assertEquals(
+        record.getSomeMultiMemberUnion(),
+        flattener.makeJsonPathExtractor("$.someMultiMemberUnion.int").apply(record)
     );
     Assert.assertEquals(
         record.getSomeNull(),
@@ -223,7 +227,7 @@ public class AvroFlattenerMakerTest
   public void makeJsonQueryExtractor()
   {
     final SomeAvroDatum record = AvroStreamInputRowParserTest.buildSomeAvroDatum();
-    final AvroFlattenerMaker flattener = new AvroFlattenerMaker(false, false);
+    final AvroFlattenerMaker flattener = new AvroFlattenerMaker(false, false, false);
 
     Assert.assertEquals(
         record.getTimestamp(),
